@@ -15,19 +15,33 @@ class Column_Management{
     public function __construct(){
         add_action('plugins_loaded',array($this,'cm_text_domain'));
         add_action('admin_init',array($this,'cm_plugins_started'));
+
+        //add_action('init',array($this,'cm_added_wordcount_as_postmeta_data'));
     }
     public function cm_text_domain(){
         load_plugin_textdomain( 'cm', false, dirname( __FILE__ ) . "/languages" );
     }
     public function cm_plugins_started(){
         add_filter('manage_posts_columns',array($this,'cm_post_column'));
+        add_filter('manage_pages_columns',array($this,'cm_pages_column'));        
         add_action('manage_posts_custom_column',array($this,'cm_add_custom_post_column'),10,2);
+        add_action('manage_pages_custom_column',array($this,'cm_add_custom_page_column'),10,2);
+        add_filter('manage_edit-post_sortable_columns',array($this,'cm_column_sortable'));
+
+        
+        add_action('save_post',array($this,'cm_update_post_count_on_save_post'));
+        add_action('pre_get_posts',array($this,'cm_post_sorted_by_wordcount'));
     }
     public function cm_post_column($columns){
        $columns['id']=__('ID','cm');
        $columns['thumbnail']=__('Thumbnail','cm');
+       $columns['wordcount']=__('Word Count','cm');
        return $columns;
     }
+    public function cm_pages_column($columns){
+        $columns['id']=__('ID','cm');
+        return $columns;
+     }
     public function cm_add_custom_post_column($column,$post_id){
         if('id'==$column){
             echo $post_id;
@@ -36,6 +50,52 @@ class Column_Management{
             $thumbnail=get_the_post_thumbnail($post_id,array('80','80'));
             echo $thumbnail;
         }
+        if('wordcount'==$column){
+            // $_post=get_post($post_id);
+            // $content=$_post->post_content;
+            // $wordn=str_word_count(strip_tags($content));
+            $wordn = get_post_meta( $post_id, 'wordt', true );
+            echo $wordn;
+        }
+    }
+    public function cm_add_custom_page_column($column,$post_id){
+        if('id'==$column){
+            echo $post_id;
+        }
+    }
+    public function cm_column_sortable($columns){
+        $columns['wordcount']='wordt';
+        return $columns;
+    }
+    //ei funciton 1bar run kore remove kore dibo karon just wordcount r value gula every post id ar against a wordcount gula post meta akare save korar jonno
+    // public function cm_added_wordcount_as_postmeta_data(){
+    //     $_posts=get_posts(array(
+    //         'post_type' =>'post',
+    //         'posts_per_page'=>-1
+    //     ));
+
+    //     foreach($_posts as $post){
+    //         $content=$post->post_content;
+    //         $wordcount=str_word_count(strip_tags($content));
+    //         update_post_meta($post->ID,'wordt',$wordcount);
+    //     }
+    // }
+
+    public function cm_post_sorted_by_wordcount($wpquery){
+        if(!is_admin()){
+            return;
+        }
+        $orderby=$wpquery->get('orderby');
+        if('wordt'==$orderby){
+            $wpquery->set('meta_key','wordt');
+            $wpquery->set('orderby','meta_value_num');
+        }
+    }
+    public function cm_update_post_count_on_save_post($post_id){
+            $_p=get_post($post_id);
+            $content=$_p->post_content;
+            $wordcount=str_word_count(strip_tags($content));
+            update_post_meta($post_id,'wordt',$wordcount);
     }
 }
 new Column_Management();
