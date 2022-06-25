@@ -33,8 +33,10 @@ class Column_Management{
         add_action('pre_get_posts',array($this,'cm_post_sorted_by_wordcount'));
         add_action('pre_get_posts',array($this,'cm_custom_post_filter_data'));
         add_action('pre_get_posts',array($this,'cm_custom_thumbnail_filter_data'));
+        add_action('pre_get_posts',array($this,'cm_custom_wordcount_filter_data'));
         add_action('restrict_manage_posts',array($this,'cm_custom_filter_post'));
         add_action('restrict_manage_posts',array($this,'cm_custom_filter_thumbnail'));
+        add_action('restrict_manage_posts',array($this,'cm_custom_filter_wordcount'));
     }
     public function cm_post_column($columns){
        $columns['id']=__('ID','cm');
@@ -152,6 +154,27 @@ class Column_Management{
          </select>
     <?php
     }
+    public function cm_custom_filter_wordcount(){
+        if(isset($_GET['post_type']) && $_GET['post_type'] !='post'){ //display only on posts page
+            return;
+        }
+        $filter_value= isset($_GET['WORDCFILTER']) ? $_GET['WORDCFILTER']:'';
+
+        $values=array(
+            '0'=>__('Select Wordcount','cm'),
+            '1'=>__('Above 100','cm'),
+            '2'=>__('200 to 400','cm'),
+            '3'=>__('Below 50','cm'),
+        );
+        ?>
+        <select name=WORDCFILTER>
+        <?php foreach($values as $key=> $value){
+            
+            printf('<option value="%s" %s>%s</option>',$key,$key==$filter_value ? "selected='selected'":'',$value);
+         } ?>
+         </select>
+    <?php
+    }
     public function cm_custom_thumbnail_filter_data($wpquery){
         if(!is_admin()){
             return;
@@ -169,6 +192,41 @@ class Column_Management{
                 array(
                     'key' =>'_thumbnail_id',
                     'compare' =>'NOT EXISTS'
+                )
+            ) );
+        }
+    }
+    public function cm_custom_wordcount_filter_data($wpquery){
+        if(!is_admin()){
+            return;
+        }
+        $filter_value = isset( $_GET['WORDCFILTER'] ) ? $_GET['WORDCFILTER'] : '';
+        if ( '1' == $filter_value ) {
+            $wpquery->set('meta_query',array(
+                array(
+                    'key'=>'wordt',
+                    'value'=>'100',
+                    'compare' =>'>',
+                    'type'   =>'NUMERIC'
+                )
+            ));
+        } else if ( '2' == $filter_value ) {
+            $wpquery->set( 'meta_query',array(
+                array(
+                    'key' =>'wordt',
+                    'value'=>array('200','400'),
+                    'compare' =>'BETWEEN',
+                    'type' =>'NUMERIC'
+                )
+            ) );
+        }
+        else if ( '3' == $filter_value ) {
+            $wpquery->set( 'meta_query',array(
+                array(
+                    'key' =>'wordt',
+                    'value'=>'50',
+                    'compare' =>'<',
+                    'type' =>'NUMERIC'
                 )
             ) );
         }
