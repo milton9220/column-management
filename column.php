@@ -31,6 +31,8 @@ class Column_Management{
         
         add_action('save_post',array($this,'cm_update_post_count_on_save_post'));
         add_action('pre_get_posts',array($this,'cm_post_sorted_by_wordcount'));
+        add_action('pre_get_posts',array($this,'cm_custom_post_filter_data'));
+        add_action('restrict_manage_posts',array($this,'cm_custom_filter_post'));
     }
     public function cm_post_column($columns){
        $columns['id']=__('ID','cm');
@@ -96,6 +98,37 @@ class Column_Management{
             $content=$_p->post_content;
             $wordcount=str_word_count(strip_tags($content));
             update_post_meta($post_id,'wordt',$wordcount);
+    }
+    public function cm_custom_filter_post(){
+        if(isset($_GET['post_type']) && $_GET['post_type'] !='post'){ //display only on posts page
+            return;
+        }
+        $filter_value= isset($_GET['DEMOFILTER']) ? $_GET['DEMOFILTER']:'';
+
+        $values=array(
+            '0'=>__('Select Status','cm'),
+            '1'=>__('Some Posts','cm'),
+            '2'=>__('Some Post++','cm')
+        );
+        ?>
+        <select name=DEMOFILTER>
+        <?php foreach($values as $key=> $value){
+            
+            printf('<option value="%s" %s>%s</option>',$key,$key==$filter_value ? "selected='selected'":'',$value);
+         } ?>
+         </select>
+    <?php 
+    }
+    public function cm_custom_post_filter_data($wpquery){
+        if(!is_admin()){
+            return;
+        }
+        $filter_value = isset( $_GET['DEMOFILTER'] ) ? $_GET['DEMOFILTER'] : '';
+        if ( '1' == $filter_value ) {
+            $wpquery->set( 'post__in', array(39) );
+        } else if ( '2' == $filter_value ) {
+            $wpquery->set( 'post__in', array( 5) );
+        }
     }
 }
 new Column_Management();
